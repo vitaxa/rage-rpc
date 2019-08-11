@@ -1,6 +1,9 @@
 {
     "compilerOptions": {
-        "lib": ["es2015"],
+        "lib": [
+            "es2017",
+            "dom"
+        ],
         "noEmit": true,
         "isolatedModules": true,
         "noImplicitAny": true

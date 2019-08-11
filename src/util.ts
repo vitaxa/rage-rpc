@@ -13,7 +13,7 @@ enum MpTypes {
 function isObjectMpType(obj: any, type: MpTypes){
     const client = getEnvironment() === 'client';
     if(obj && typeof obj === 'object' && typeof obj.id !== 'undefined'){
-        const test = (type, collection, mpType) => client ? obj.type === type && collection.at(obj.id) === obj : obj instanceof mpType;
+        const test = (type: string, collection: { at: (arg0: any) => void; }, mpType: any) => client ? obj.type === type && collection.at(obj.id) === obj : obj instanceof mpType;
         switch(type){
             case MpTypes.Blip: return test('blip', mp.blips, mp.Blip);
             case MpTypes.Checkpoint: return test('checkpoint', mp.checkpoints, mp.Checkpoint);

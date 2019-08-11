@@ -55,7 +55,10 @@ if(!glob[PROCESS_EVENT]){
             }
             if(ret){
                 const promise = callProcedure(data.name, data.args, info);
-                if(!data.noRet) promise.then(res => ret({ ...part, res })).catch(err => ret({ ...part, err }));
+                if(!data.noRet) { // @ts-ignore
+                    // @ts-ignore
+                    promise.then(res => ret({ ...part, res })).catch(err => ret({ ...part, err }));
+                }
             }
         }else if(data.ret){ // a previously called remote procedure has returned
             const info = glob.__rpcPending[data.id];
@@ -109,6 +112,7 @@ if(!glob[PROCESS_EVENT]){
 
             register(TRIGGER_EVENT_BROWSERS, ([name, args], info) => {
                 Object.values(glob.__rpcBrowsers).forEach(browser => {
+                    // @ts-ignore
                     _callBrowser(browser, TRIGGER_EVENT, [name, args], { fenv: info.environment, noRet: 1 });
                 });
             });
@@ -167,12 +171,11 @@ export function unregister(name: string): void {
  *
  * @param name - The name of the locally registered procedure.
  * @param args - Any parameters for the procedure.
- * @param options - Any options.
  * @returns The result from the procedure.
  */
-export function call(name: string, args?: any, options: CallOptions = {}): Promise<any> {
-    if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('call expects 1 to 3 arguments: "name", optional "args", and optional "options"');
-    return util.promiseTimeout(callProcedure(name, args, { environment }), options.timeout);
+export function call(name: string, args?: any): Promise<any> {
+    if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('call expects 1 to 3 arguments: "name", optional "args"');
+    return util.promiseTimeout(callProcedure(name, args, { environment }));
 }
 
 function _callServer(name: string, args?: any, extraData: any = {}): Promise<any> {
@@ -212,16 +215,12 @@ function _callServer(name: string, args?: any, extraData: any = {}): Promise<any
  *
  * @param name - The name of the registered procedure.
  * @param args - Any parameters for the procedure.
- * @param options - Any options.
  * @returns The result from the procedure.
  */
-export function callServer(name: string, args?: any, options: CallOptions = {}): Promise<any> {
-    if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('callServer expects 1 to 3 arguments: "name", optional "args", and optional "options"');
+export function callServer(name: string, args?: any): Promise<any> {
+    if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('callServer expects 1 to 3 arguments: "name", optional "args"');
 
-    let extraData: any = {};
-    if(options.noRet) extraData.noRet = 1;
-
-    return util.promiseTimeout(_callServer(name, args, extraData), options.timeout);
+    return util.promiseTimeout(_callServer(name, args));
 }
 
 function _callClient(player: Player, name: string, args?: any, extraData: any = {}): Promise<any> {
@@ -282,37 +281,31 @@ function _callClient(player: Player, name: string, args?: any, extraData: any = 
  * @param player - The player to call the procedure on.
  * @param name - The name of the registered procedure.
  * @param args - Any parameters for the procedure.
- * @param options - Any options.
  * @returns The result from the procedure.
  */
-export function callClient(player: Player | string, name?: string | any, args?: any, options: CallOptions = {}): Promise<any> {
+export function callClient(player: Player | string, name?: string | any, args?: any): Promise<any> {
     switch(environment){
         case 'client': {
-            options = args || {};
             args = name;
             name = player;
             player = null;
-            if((arguments.length < 1 || arguments.length > 3) || typeof name !== 'string') return util.promiseReject('callClient from the client expects 1 to 3 arguments: "name", optional "args", and optional "options"');
+            if((arguments.length < 1 || arguments.length > 3) || typeof name !== 'string') return util.promiseReject('callClient from the client expects 1 to 3 arguments: "name", optional "args"');
             break;
         }
         case 'server': {
-            if((arguments.length < 2 || arguments.length > 4) || typeof player !== 'object') return util.promiseReject('callClient from the server expects 2 to 4 arguments: "player", "name", optional "args", and optional "options"');
+            if((arguments.length < 2 || arguments.length > 4) || typeof player !== 'object') return util.promiseReject('callClient from the server expects 2 to 4 arguments: "player", "name", optional "args"');
             break;
         }
         case 'cef': {
-            options = args || {};
             args = name;
             name = player;
             player = null;
-            if((arguments.length < 1 || arguments.length > 3) || typeof name !== 'string') return util.promiseReject('callClient from the browser expects 1 to 3 arguments: "name", optional "args", and optional "options"');
+            if((arguments.length < 1 || arguments.length > 3) || typeof name !== 'string') return util.promiseReject('callClient from the browser expects 1 to 3 arguments: "name", optional "args"');
             break;
         }
     }
 
-    let extraData: any = {};
-    if(options.noRet) extraData.noRet = 1;
-
-    return util.promiseTimeout(_callClient(player as Player, name, args, extraData), options.timeout);
+    return util.promiseTimeout(_callClient(player as Player, name, args));
 }
 
 function _callBrowser(browser: Browser, name: string, args?: any, extraData: any = {}): Promise<any> {
@@ -357,32 +350,26 @@ function _callBrowsers(player: Player, name: string, args?: any, extraData: any 
  * @param player - The player to call the procedure on.
  * @param name - The name of the registered procedure.
  * @param args - Any parameters for the procedure.
- * @param options - Any options.
  * @returns The result from the procedure.
  */
-export function callBrowsers(player: Player | string, name?: string | any, args?: any, options: CallOptions = {}): Promise<any> {
+export function callBrowsers(player: Player | string, name?: string | any, args?: any): Promise<any> {
     let promise;
-    let extraData: any = {};
-
     switch(environment){
         case 'client':
         case 'cef':
-            options = args || {};
             args = name;
             name = player;
-            if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('callBrowsers from the client or browser expects 1 to 3 arguments: "name", optional "args", and optional "options"');
-            if(options.noRet) extraData.noRet = 1;
-            promise = _callBrowsers(null, name, args, extraData);
+            if(arguments.length < 1 || arguments.length > 3) return util.promiseReject('callBrowsers from the client or browser expects 1 to 3 arguments: "name", optional "args"');
+            promise = _callBrowsers(null, name, args);
             break;
         case 'server':
-            if(arguments.length < 2 || arguments.length > 4) return util.promiseReject('callBrowsers from the server expects 2 to 4 arguments: "player", "name", optional "args", and optional "options"');
-            if(options.noRet) extraData.noRet = 1;
-            promise = _callBrowsers(player as Player, name, args, extraData);
+            if(arguments.length < 2 || arguments.length > 4) return util.promiseReject('callBrowsers from the server expects 2 to 4 arguments: "player", "name", optional "args"');
+            promise = _callBrowsers(player as Player, name, args);
             break;
     }
 
     if(promise){
-        return util.promiseTimeout(promise, options.timeout);
+        return util.promiseTimeout(promise);
     }
 }
 
@@ -394,23 +381,21 @@ export function callBrowsers(player: Player | string, name?: string | any, args?
  * @param browser - The browser instance.
  * @param name - The name of the registered procedure.
  * @param args - Any parameters for the procedure.
- * @param options - Any options.
  * @returns The result from the procedure.
  */
-export function callBrowser(browser: Browser, name: string, args?: any, options: CallOptions = {}): Promise<any> {
+export function callBrowser(browser: Browser, name: string, args?: any): Promise<any> {
     if(environment !== 'client') return util.promiseReject('callBrowser can only be used in the client environment');
-    if(arguments.length < 2 || arguments.length > 4) return util.promiseReject('callBrowser expects 2 to 4 arguments: "browser", "name", optional "args", and optional "options"');
+    if(arguments.length < 2 || arguments.length > 4) return util.promiseReject('callBrowser expects 2 to 4 arguments: "browser", "name", optional "args"');
 
     let extraData: any = {};
-    if(options.noRet) extraData.noRet = 1;
 
-    return util.promiseTimeout(_callBrowser(browser, name, args, extraData), options.timeout);
+    return util.promiseTimeout(_callBrowser(browser, name, args, extraData));
 }
 
 function callEvent(name: string, args: any, info: ProcedureListenerInfo){
     const listeners = glob.__rpcEvListeners[name];
     if(listeners){
-        listeners.forEach(listener => listener(args, info));
+        listeners.forEach((listener: (arg0: any, arg1: ProcedureListenerInfo) => void) => listener(args, info));
     }
 }
 
