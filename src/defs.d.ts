@@ -1,6 +1,5 @@
 declare var mp: any;
 declare var global: any;
-// @ts-ignore
 declare var window: any;
 
 declare type ProcedureListener = (args: any, info: ProcedureListenerInfo) => any;
